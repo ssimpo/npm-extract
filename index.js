@@ -59,9 +59,8 @@ const argv = require('yargs')
 
 const cwdRequire = require('require-like')(argv.cwd);
 argv.repo = argv.repo || getGitRepository(argv);
-argv.dir = argv.dir || argv.repo.replace(xExtractGitDir,'').replace('.git','');
-
-run(argv);
+argv.dir = argv.dir || argv.repo.replace(xExtractGitDir,'').replace('.git','')
+argv.cloneDir = path.join(argv.dest, argv.dir);
 
 
 async function run(argv) {
@@ -76,55 +75,37 @@ async function run(argv) {
 	}
 }
 
-function npmInstall({dir, dest, npm}) {
-	console.log(`Installing using ${npm} in ${path.join(dest, dir)}`);
+function runNpmCommand({cwd, npm, command=[]}) {
 	return new Promise((resolve, reject)=>{
-		const install = spawn(npm, ['install'], {
-			cwd: path.join(dest, dir)
-		});
-		install.stdout.on('data', data=>console.log(data.toString()));
-		install.stderr.on('data', err=>console.error(err.toString()));
-		install.on('close', code=>{
+		const child = spawn(npm, command, {cwd});
+		child.stdout.on('data', data=>console.log(data.toString()));
+		child.stderr.on('data', err=>console.error(err.toString()));
+		child.on('close', code=>{
 			if (code === 0) return resolve();
-			return reject(new Error(`Abnormal exit from ${npm} with code ${code}.`))
+			return reject(new Error(`Abnormal exit from ${npm} ${command.join(' ')} with code ${code}.`));
 		});
 	});
 }
 
-function npmLink({dir, dest, npm}) {
-	console.log(`Linking using ${npm} in ${path.join(dest, dir)}`);
-	return new Promise((resolve, reject)=>{
-		const link = spawn(npm, ['link'], {
-			cwd: path.join(dest, dir)
-		});
-		link.stdout.on('data', data=>console.log(data.toString()));
-		link.stderr.on('data', err=>console.error(err.toString()));
-		link.on('close', code=>{
-			if (code === 0) return resolve();
-			return reject(new Error(`Abnormal exit from ${npm} link with code ${code}.`))
-		});
-	});
+function npmInstall({cloneDir, npm}) {
+	console.log(`Installing using ${npm} in ${cloneDir}`);
+	return runNpmCommand({cwd:cloneDir, npm, command:['install']});
 }
 
-function npmLinkBack({dir, dest, npm, id, cwd}) {
-	console.log(`Linking ${id} directory: ${path.join(dest, dir)}`);
-	return new Promise((resolve, reject)=>{
-		const link = spawn(npm, ['link', id], {cwd});
-		link.stdout.on('data', data=>console.log(data.toString()));
-		link.stderr.on('data', err=>console.error(err.toString()));
-		link.on('close', code=>{
-			if (code === 0) return resolve();
-			return reject(new Error(`Abnormal exit from ${npm} link "${id}" with code ${code}.`))
-		});
-	});
+function npmLink({cloneDir, npm}) {
+	console.log(`Linking using ${npm} in ${cloneDir}`);
+	return runNpmCommand({cwd:cloneDir, npm, command:['link']});
 }
 
-async function clone({dest, repo:url, dir}) {
-	console.log(`Cloning: ${url} into: ${path.join(dest, dir)}`);
+function npmLinkBack({cloneDir, npm, id, cwd}) {
+	console.log(`Linking ${id} directory to: ${cloneDir}`);
+	return runNpmCommand({cwd, npm, command:['link', id]});
+}
+
+async function clone({cloneDir:dir, repo:url}) {
+	console.log(`Cloning: ${url} into: ${dir}`);
 	try {
-		await git.clone({
-			fs, dir:path.join(dest, dir), url
-		});
+		await git.clone({fs, dir, url});
 	} catch(err) {
 		console.error(err);
 	}
@@ -164,3 +145,5 @@ function getGitRepository({cwd, id, pkfile}) {
 
 	return convertShortRepoPaths(repoPath);
 }
+
+run(argv);
