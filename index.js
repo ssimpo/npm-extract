@@ -23,7 +23,7 @@ function getArgs() {
 	argv.dir = argv.dir || argv.repo.replace(xExtractGitDir,'').replace('.git','');
 	argv.cloneDir = path.join(argv.dest, argv.dir);
 
-	return argv;
+	return parseArgv(argv);
 }
 
 function parseArgv(argv) {
@@ -31,14 +31,20 @@ function parseArgv(argv) {
 	argv.dir = argv.dir || argv.repo.replace(xExtractGitDir,'').replace('.git','');
 	argv.cloneDir = path.join(argv.dest, argv.dir);
 
-	if (!argv.dest) throw new AssertionError(`No destination for module extraction.`);
-	if (!argv.id) throw new AssertionError(`No module id given.`);
+	if (!!module.parent) {
+		const options = substituteInObject(get(config, 'yargs.options', {}));
+		Object.keys(options).forEach(option=>{
+			if (!argv[option] && !!options[option].demandOptionApi) {
+				throw new AssertionError(options[option].demandOptionApi);
+			}
+		});
+	}
 
 	return argv;
 }
 
 async function run(argv) {
-	parseArgv(argv);
+	if (!module.parent) parseArgv(argv);
 
 	try {
 		await clone(argv);
@@ -104,7 +110,7 @@ function convertShortRepoPaths(repoPath) {
 		return `https://${repoStore}.${(repoStore==='bitbucket')?'org':'com'}/${repoPath}.git`;
 	}
 	if (xGitSsh.test(repoPath)) repoPath = 'https://' + repoPath.replace(xGitSsh, '').replace(':',`/`);
-	repoPath.replace('git://', 'https://');
+	repoPath = repoPath.replace('git://', 'https://');
 
 	return repoPath;
 }
