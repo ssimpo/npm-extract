@@ -9,56 +9,16 @@ const { spawn } = require('child_process');
 const git = require('isomorphic-git');
 const path = require('path');
 const fs = require('fs');
-const {get} = require('./lib/util');
+const {get, substituteInObject} = require('./lib/util');
+const {config} = require('./package.json');
 
 
 function getArgs() {
-	const argv = require('yargs')
-		.option('cwd', {
-			alias: 'c',
-			default: process.cwd(),
-			describe: 'The working directory to extract and link from.',
-			defaultDescription: 'Current working directory.',
-			type: 'string'
-		})
-		.option('dest', {
-			alias: 'd',
-			describe: 'The directory to clone module to.',
-			demandOption: 'No --dest switch given. Please supply a destination for module extraction.',
-			type: 'string'
-		})
-		.option('id', {
-			alias: 'i',
-			describe: 'The module to clone and link.',
-			demandOption: 'No --id switch given. Please supply a module to clone and link to.',
-			type: 'string'
-		})
-		.option('pkfile', {
-			alias: 'p',
-			describe: 'The name of the package description file to extract data from.',
-			default: 'package.json',
-			type: 'string'
-		})
-		.option('dir', {
-			alias: 'g',
-			describe: 'The directory to clone to within destination directory.',
-			defaultDescription: 'The repository name.',
-			type: 'string'
-		})
-		.option('repo', {
-			alias: 'r',
-			describe: 'The url of the repository.',
-			defaultDescription: 'Taken from the package file repository.url / repository.',
-			type: 'string'
-		})
-		.option('npm', {
-			alias: 'n',
-			describe: 'The "npm" command to use, eg: npm, yarn or pnpm .',
-			default: 'npm',
-			type: 'string'
-		})
-		.argv;
+	const yargs = require('yargs');
+	const options = substituteInObject(get(config, 'yargs.options', {}));
+	Object.keys(options).forEach(option=>yargs.option(option, options[option]));
 
+	const argv = yargs.argv;
 	argv.repo = argv.repo || getGitRepository(argv, require('require-like')(argv.cwd));
 	argv.dir = argv.dir || argv.repo.replace(xExtractGitDir,'').replace('.git','');
 	argv.cloneDir = path.join(argv.dest, argv.dir);
