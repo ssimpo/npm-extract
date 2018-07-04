@@ -1,7 +1,7 @@
 {
   "name": "npm-extract",
   "description": "Simple module to extract a node module from the current path, git cloning it and then npm linking.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "dependencies": {
     "isomorphic-git": "^0.19.11",
     "lodash.get": "^4.4.2",

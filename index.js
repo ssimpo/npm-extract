@@ -104,6 +104,7 @@ function convertShortRepoPaths(repoPath) {
 		return `https://${repoStore}.${(repoStore==='bitbucket')?'org':'com'}/${repoPath}.git`;
 	}
 	if (xGitSsh.test(repoPath)) repoPath = 'https://' + repoPath.replace(xGitSsh, '').replace(':',`/`);
+	repoPath.replace('git://', 'https://');
 
 	return repoPath;
 }
